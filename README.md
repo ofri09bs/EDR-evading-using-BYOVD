@@ -17,9 +17,10 @@ The architecture is built around exploiting `RTCore64.sys` (**CVE-2019-16098**),
 Once the driver and payload DLL are dropped from a byte array to disk and the driver is loaded into Ring 0, the program defeats KASLR by leaking the `ntoskrnl.exe` base address and executes the blinding routines before injecting a reverse shell DLL into a `SYSTEM`-privileged `svchost.exe` process.
 
 ### 1. Kernel R/W Primitive & The 4-Byte Constraint
-The vulnerable driver exposes two primary IOCTLs:
+The vulnerable driver exposes three primary IOCTLs:
 * `0x80002048` — Read primitive
 * `0x8000204c` — Write primitive
+* `0x80002030` - Read any MSR
 
 **Constraint:** These IOCTLs only allow reading and writing up to **4 bytes (`DWORD`)** per call, whereas x64 kernel pointers are **8 bytes (`QWORD`)**. Overwriting an 8-byte pointer in two separate 4-byte writes introduces a critical race condition: if the kernel invokes the pointer between the first and second write, it will dereference a half-written address and cause a BSOD. All kernel patches in this project are specifically designed to operate within a single 4-byte write operation.
 
